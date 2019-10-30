@@ -1,13 +1,34 @@
-Version: 1.0
+fantasy <- read.csv("Fantasy Football.csv", header = TRUE, stringsAsFactors = FALSE)
+str(fantasy)
+n <- seq(from = 0, to = 6, by = .01)
+pred.wins <- list()
 
-RestoreWorkspace: Default
-SaveWorkspace: Default
-AlwaysSaveHistory: Default
+for(i in 1:length(n)) {
+  pred.wins[[i]] <- (fantasy$Pts.For ^ n[i]) / ((fantasy$Pts.For ^ n[i]) + (fantasy$Pts.Agnst ^ n[i])) * (fantasy[1, 3] + fantasy[1, 4])
+}
 
-EnableCodeIndexing: Yes
-UseSpacesForTab: Yes
-NumSpacesForTab: 2
-Encoding: UTF-8
+mse <- list()
 
-RnwWeave: Sweave
-LaTeX: pdfLaTeX
+for(i in 1:length(n)) {
+  mse[[i]] <- sum((pred.wins[[i]] - fantasy$Wins) ^ 2) / length(n)
+}
+
+plot(y = mse, x = n, type = "l", main = "Optimized Eponent", ylab = "Mean Square Error", xlab = "Exponent")
+abline(v = n[which.min(unlist(mse))], col = "red")
+
+optimized <- n[which.min(unlist(mse))]
+
+optimized.preds <- (fantasy$Pts.For ^ optimized) / ((fantasy$Pts.For ^ optimized) + (fantasy$Pts.Agnst ^ optimized)) * 8
+
+howitshouldbe <- data.frame(cbind(fantasy$Team, round(optimized.preds, 2), fantasy$Wins, round(fantasy$Wins - optimized.preds, 2), (8 - round(optimized.preds, 2)), fantasy$Losses, round(fantasy$Losses - (8 - optimized.preds), 2)))
+
+names(howitshouldbe) <- c("Team" ,"Predicted Wins", "Actual Wins", "How Lucky Are You?", "Predicted Losses", "Actual Losses", "How Unlucky Are You?")
+
+howitshouldbe
+
+cat("Don't be thrown by categories How Lucky Are You? and How Unlucky Are You? The are simply the difference between how many games you are predicted to win and how many you actually won. Therefore, a positive Lucky score means you won more than you should have. The larger that number, the more lucky.
+    
+Notice Unlucky is the same number as Lucky, but on opposite ends of the number line. This makes sense because if you won 8 games but should have only won 5, you are +3 lucky, and therefore, you are -3 unlucky.
+
+As of now (29 October 2019), I am the luckiest based on how many I have won when considered how few points I have scored and how many points have been scored against me.")
+
